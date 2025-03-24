@@ -11,6 +11,7 @@ export default function MathQuiz() {
   const [answers, setAnswers] = useState(Array(5).fill(""));
   const [score, setScore] = useState(null);
   const [timeLeft, setTimeLeft] = useState(480);
+  const [showHintIndex, setShowHintIndex] = useState(null);
   const childName = sessionStorage.getItem("childName") || "Bé";
 
   useEffect(() => {
@@ -39,6 +40,26 @@ export default function MathQuiz() {
 
   function calculateAnswer(q) {
     return q.op === "+" ? q.num1 + q.num2 : q.num1 - q.num2;
+  }
+
+  function generateHint(q) {
+    if (q.op === "+") {
+      if (q.num1 < 10 && q.num2 < 10 && q.num1 + q.num2 < 10) {
+        return `${childName} hãy tưởng tượng bằng cách đếm que: |`.repeat(q.num1) + ` + |`.repeat(q.num2) + ` = ${q.num1 + q.num2}`;
+      } else if (q.num1 + q.num2 >= 10) {
+        const toTen = 10 - q.num1;
+        const remain = q.num2 - toTen;
+        return `${childName} ơi, con hãy tách ra nhé: \n${q.num1} + ${toTen} = 10 và 10 + ${remain} = ${q.num1 + q.num2}`;
+      }
+    } else if (q.op === "-") {
+      if (q.num1 >= q.num2) {
+        return `${childName} hãy nghĩ rằng con đang có ${q.num1} cái kẹo, bây giờ lấy đi ${q.num2} cái thì còn bao nhiêu nhỉ?`;
+      } else {
+        const borrow = 10 + (q.num1 % 10);
+        const remain = borrow - q.num2;
+        return `${childName} hãy mượn 1 từ hàng chục nhé: \n${q.num1} trở thành ${borrow}, sau đó lấy ${q.num2} đi thì còn ${remain}`;
+      }
+    }
   }
 
   const handleChange = (e, index) => {
@@ -82,21 +103,17 @@ export default function MathQuiz() {
           const isCorrect = parseInt(answers[i]) === calculateAnswer(q);
           const hasAnswered = answers[i] !== "" && score !== null;
           return (
-            <div key={i} className="mb-3 d-flex flex-column align-items-start">
-              <div className="d-flex align-items-center">
-                <button className="btn btn-light border me-2">Câu {i + 1}</button>
-                <div className="d-flex align-items-center bg-light p-2 rounded" style={{ width: "100%" }}>
-                  <span className="fs-5 me-2">{`${q.num1} ${q.op} ${q.num2} =`}</span>
-                  <input
-                    type="number"
-                    className="form-control text-center"
-                    style={{ width: "80px" }}
-                    value={answers[i]}
-                    onChange={(e) => handleChange(e, i)}
-                    required
-                  />
-                </div>
-              </div>
+            <div key={i} className="mb-3">
+              <h5>Câu {i + 1}: {q.num1} {q.op} {q.num2} = ?
+                <button type="button" className="btn btn-warning btn-sm ms-2" onClick={() => setShowHintIndex(i)}>💡</button>
+              </h5>
+              <input
+                type="number"
+                className="form-control"
+                value={answers[i]}
+                onChange={(e) => handleChange(e, i)}
+                required
+              />
               {hasAnswered && (
                 <motion.small
                   className={isCorrect ? "text-primary" : "text-danger"}
@@ -104,24 +121,27 @@ export default function MathQuiz() {
                   animate={{ opacity: 1 }}
                   transition={{ duration: 1 }}
                 >
-                  {isCorrect ? `${childName} tính đúng rồi, giỏi quá!!!` : `${childName} ơi, con tính sai rồi. Đáp án là ${calculateAnswer(q)}`}
+                  {isCorrect 
+                    ? `${childName} tính đúng rồi, giỏi quá!!!`
+                    : `${childName} ơi, con tính sai rồi. Đáp án là ${calculateAnswer(q)}. Bé hãy làm cẩn thận hơn nhé!`}
                 </motion.small>
+              )}
+              {showHintIndex === i && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                  className="p-2 mt-2 bg-light border rounded"
+                >
+                  {generateHint(q)}
+                </motion.div>
               )}
             </div>
           );
         })}
-        <button type="submit" className="btn btn-primary w-100">Nộp Bài</button>
+        <button type="submit" className="btn btn-primary">Nộp Bài</button>
+        <button type="button" className="btn btn-secondary ms-2" onClick={handleNewQuiz}>Làm Bài Mới</button>
       </form>
-      {score !== null && (
-        <motion.div
-          className="mt-4 p-3 bg-light text-center rounded"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-        >
-          <h3>Điểm của bạn: {score} / 10</h3>
-          <button className="btn btn-secondary mt-3" onClick={handleNewQuiz}>Tạo Bài Mới</button>
-        </motion.div>
-      )}
     </div>
   );
 }
